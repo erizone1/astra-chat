@@ -246,5 +246,3 @@ Internationalization:
  
  T r i g g e r   s e c r e t   s c a n  
  
-<!-- direct-push test (should be blocked) -->
-
