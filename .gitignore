@@ -29,3 +29,13 @@ database.sqlite
 .DS_Store
 **/.DS_Store
 
+
+# Prisma local sqlite
+shopify-app/prisma/dev.sqlite
+shopify-app/prisma/dev.sqlite-journal
+
+
+# Prisma local sqlite
+shopify-app/prisma/dev.sqlite
+shopify-app/prisma/dev.sqlite-journal
+
