@@ -1,7 +1,7 @@
 /// <reference types="vitest" />
 
 import { reactRouter } from "@react-router/dev/vite";
-import { defineConfig, type UserConfig } from "vitest/config";
+import { defineConfig } from "vitest/config";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 // Related: https://github.com/remix-run/remix/issues/2835#issuecomment-1144102176
@@ -17,8 +17,7 @@ if (
   delete process.env.HOST;
 }
 
-const host = new URL(process.env.SHOPIFY_APP_URL || "http://localhost")
-  .hostname;
+const host = new URL(process.env.SHOPIFY_APP_URL || "http://localhost").hostname;
 
 let hmrConfig;
 if (host === "localhost") {
@@ -31,8 +30,8 @@ if (host === "localhost") {
 } else {
   hmrConfig = {
     protocol: "wss",
-    host: host,
-    port: parseInt(process.env.FRONTEND_PORT!) || 8002,
+    host,
+    port: parseInt(process.env.FRONTEND_PORT || "8002", 10),
     clientPort: 443,
   };
 }
@@ -64,4 +63,5 @@ export default defineConfig({
     clearMocks: true,
     include: ["test/**/*.test.ts", "test/**/*.spec.ts"],
   },
-}) satisfies UserConfig;
+});
+
