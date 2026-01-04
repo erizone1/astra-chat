@@ -241,3 +241,8 @@ Shopify:
 Internationalization:
 
 - [Internationalizing your app](https://shopify.dev/docs/apps/best-practices/internationalization/getting-started)
+
+ S e e d   C I   c h e c k s  
+ 
+ T r i g g e r   s e c r e t   s c a n  
+ 

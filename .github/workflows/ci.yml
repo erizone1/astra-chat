@@ -1,14 +1,16 @@
-name: ci
+﻿name: ci
 
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   install-lint-typecheck-build:
-    name: install-lint-typecheck-build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     defaults:
       run:
@@ -19,8 +21,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20.19.0
-          cache: npm
+          node-version: "20.19.0"
+          cache: "npm"
           cache-dependency-path: shopify-app/package-lock.json
 
       - name: Install
