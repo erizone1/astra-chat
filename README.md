@@ -244,3 +244,5 @@ Internationalization:
 
  S e e d   C I   c h e c k s  
  
+ T r i g g e r   s e c r e t   s c a n  
+ 
