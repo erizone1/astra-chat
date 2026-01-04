@@ -6,7 +6,23 @@ import { type EntryContext } from "react-router";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
 
+import {
+  enableRequestIdRuntimePatches,
+  getOrCreateRequestId,
+  runWithRequestId,
+  setRequestIdHeader,
+} from "./utils/request-id.server";
+import { logger } from "./utils/logger.server";
+
 export const streamTimeout = 5000;
+
+let runtimePatched = false;
+function ensureRuntimePatched() {
+  if (!runtimePatched) {
+    enableRequestIdRuntimePatches();
+    runtimePatched = true;
+  }
+}
 
 export default async function handleRequest(
   request: Request,
@@ -14,44 +30,106 @@ export default async function handleRequest(
   responseHeaders: Headers,
   reactRouterContext: EntryContext
 ) {
-  addDocumentResponseHeaders(request, responseHeaders);
-  const userAgent = request.headers.get("user-agent");
-  const callbackName = isbot(userAgent ?? '')
-    ? "onAllReady"
-    : "onShellReady";
+  ensureRuntimePatched();
 
-  return new Promise((resolve, reject) => {
-    const { pipe, abort } = renderToPipeableStream(
-      <ServerRouter
-        context={reactRouterContext}
-        url={request.url}
-      />,
-      {
-        [callbackName]: () => {
-          const body = new PassThrough();
-          const stream = createReadableStreamFromReadable(body);
+  const requestId = getOrCreateRequestId(request.headers);
 
-          responseHeaders.set("Content-Type", "text/html");
-          resolve(
-            new Response(stream, {
-              headers: responseHeaders,
-              status: responseStatusCode,
-            })
-          );
-          pipe(body);
-        },
-        onShellError(error) {
-          reject(error);
-        },
-        onError(error) {
-          responseStatusCode = 500;
-          console.error(error);
-        },
-      }
-    );
+  return runWithRequestId(requestId, async () => {
+    try {
+      // Shopify headers first, then request-id header so it can’t be overwritten
+      addDocumentResponseHeaders(request, responseHeaders);
+      setRequestIdHeader(responseHeaders, requestId);
 
-    // Automatically timeout the React renderer after 6 seconds, which ensures
-    // React has enough time to flush down the rejected boundary contents
-    setTimeout(abort, streamTimeout + 1000);
+      const userAgent = request.headers.get("user-agent");
+      const callbackName = isbot(userAgent ?? "") ? "onAllReady" : "onShellReady";
+
+      return await new Promise<Response>((resolve) => {
+        const { pipe, abort } = renderToPipeableStream(
+          <ServerRouter context={reactRouterContext} url={request.url} />,
+          {
+            [callbackName]: () => {
+              try {
+                const body = new PassThrough();
+                const stream = createReadableStreamFromReadable(body);
+
+                responseHeaders.set("Content-Type", "text/html");
+                setRequestIdHeader(responseHeaders, requestId);
+
+                resolve(
+                  new Response(stream, {
+                    headers: responseHeaders,
+                    status: responseStatusCode,
+                  })
+                );
+
+                pipe(body);
+              } catch (err) {
+                logger.error("SSR callback failed", {
+                  url: request.url,
+                  errorMessage: err instanceof Error ? err.message : String(err),
+                  stack: err instanceof Error ? err.stack : undefined,
+                });
+
+                responseHeaders.set("Content-Type", "text/plain");
+                setRequestIdHeader(responseHeaders, requestId);
+
+                resolve(
+                  new Response("Internal Server Error", {
+                    status: 500,
+                    headers: responseHeaders,
+                  })
+                );
+              }
+            },
+
+            onShellError(error) {
+              // Don’t reject; always resolve a response with X-Request-Id
+              logger.error("SSR shell error", {
+                url: request.url,
+                errorMessage: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+              });
+
+              responseHeaders.set("Content-Type", "text/plain");
+              setRequestIdHeader(responseHeaders, requestId);
+
+              resolve(
+                new Response("Internal Server Error", {
+                  status: 500,
+                  headers: responseHeaders,
+                })
+              );
+            },
+
+            onError(error) {
+              // React keeps going; mark status 500 and log
+              responseStatusCode = 500;
+              logger.error("SSR render error", {
+                url: request.url,
+                errorMessage: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+              });
+            },
+          }
+        );
+
+        setTimeout(abort, streamTimeout + 1000);
+      });
+    } catch (err) {
+      // Synchronous failures initiating SSR
+      logger.error("Failed to initiate SSR", {
+        url: request.url,
+        errorMessage: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+
+      responseHeaders.set("Content-Type", "text/plain");
+      setRequestIdHeader(responseHeaders, requestId);
+
+      return new Response("Internal Server Error", {
+        status: 500,
+        headers: responseHeaders,
+      });
+    }
   });
 }
