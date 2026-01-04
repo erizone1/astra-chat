@@ -1,23 +1,19 @@
 ﻿## Summary
-What does this PR change and why?
+<!-- What does this PR change and why? -->
 
-## Testing / Evidence
-- [ ] Lint passed (`cd shopify-app && npm run lint`)
-- [ ] Typecheck passed (`cd shopify-app && npm run typecheck`)
-- [ ] Build passed (`cd shopify-app && npm run build`)
-- [ ] Local smoke test: `cd shopify-app && npm run dev` (note anything relevant)
+## Checklist
+- [ ] No secrets committed (.env, API keys, tokens). `.env` is git-ignored and `.env.example` contains no secrets.
+- [ ] CI is green OR I ran locally: `npm run lint`, `npm run typecheck`, `npm run build`
+- [ ] Tests added/updated OR explain why none
 
-## Env / Secrets Checklist
-- [ ] No secrets added (tokens/keys/passwords) — reviewed PR diff
-- [ ] `.env` not committed (it must stay local only)
-- [ ] If env vars changed: `.env.example` updated + README updated with one-liners
-- [ ] Any secrets are stored only in GitHub Secrets / hosting platform, not in code
+## Test evidence
+<!-- commands run, screenshots, logs -->
 
-## Risk / Security / Tenant Isolation
-- [ ] No tenant isolation impact
-- [ ] Tenant isolation / security-relevant change (explain):
-  - Risk:
-  - Mitigation / validation (shop scope checks, session usage, auth boundaries):
+## Risk / security notes
+- Tenant isolation impacted? (Yes/No)
+- Auth / session / data access changed? (Yes/No)
+- Webhooks changed? (Yes/No)
+- DB migration required? (Yes/No)
 
 ## Rollback plan
-How would we safely revert if this causes issues?
+<!-- How to revert safely -->
