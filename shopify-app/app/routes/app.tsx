@@ -5,10 +5,15 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 
 import { authenticate } from "../shopify.server";
 import { logger } from "../utils/logger.server";
-import { withRequestId, withRequestIdHeader } from "../utils/request-id.server";
+import { withRequestId } from "../utils/request-id.server";
+
+type AdminAuthResultShape = {
+  session?: { shop?: string };
+  admin?: { session?: { shop?: string } };
+};
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  return withRequestId(request, async (requestId) => {
+  return withRequestId(request, async () => {
     const url = new URL(request.url);
 
     logger.info("embedded.auth.start", {
@@ -19,10 +24,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     try {
       const authResult = await authenticate.admin(request);
 
-      // authResult shape can vary by template/version; we log only what’s safely available
+      // Avoid `any` (lint): cast to a narrow expected shape
+      const ar = authResult as unknown as AdminAuthResultShape;
+
       const shop =
-        (authResult as any)?.session?.shop ??
-        (authResult as any)?.admin?.session?.shop ??
+        ar.session?.shop ??
+        ar.admin?.session?.shop ??
         url.searchParams.get("shop") ??
         undefined;
 
@@ -34,15 +41,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       // eslint-disable-next-line no-undef
       return { apiKey: process.env.SHOPIFY_API_KEY || "" };
     } catch (err) {
-      // Shopify auth commonly throws a Response (redirect) as normal flow.
-      // Attach request id header to that thrown response and rethrow.
+      // Shopify auth can throw a Response (e.g., 410 / redirects in embedded flows)
       if (err instanceof Response) {
         logger.info("embedded.auth.thrown_response", {
           path: url.pathname,
           status: err.status,
-          location: err.headers.get("location") ?? undefined,
         });
-        throw withRequestIdHeader(err, requestId);
+        throw err;
       }
 
       logger.error("embedded.auth.fail", {
@@ -50,6 +55,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         errorMessage: err instanceof Error ? err.message : String(err),
         stack: err instanceof Error ? err.stack : undefined,
       });
+
       throw err;
     }
   });
@@ -77,4 +83,3 @@ export function ErrorBoundary() {
 export const headers: HeadersFunction = (headersArgs) => {
   return boundary.headers(headersArgs);
 };
-
