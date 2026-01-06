@@ -4,8 +4,8 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 
 import { authenticate } from "../shopify.server";
-import { logger } from "../utils/logger.server";
-import { withRequestId } from "../utils/request-id.server";
+import { logger, withEventLogging } from "../utils/logger.server";
+import { withRequestId, withRequestIdHeader } from "../utils/request-id.server";
 
 type AdminAuthResultShape = {
   session?: { shop?: string };
@@ -13,16 +13,26 @@ type AdminAuthResultShape = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  return withRequestId(request, async () => {
+  return withRequestId(request, async (requestId) => {
     const url = new URL(request.url);
+    const shopDomain = url.searchParams.get("shop") ?? undefined;
 
     logger.info("embedded.auth.start", {
       path: url.pathname,
       method: request.method,
+      shopDomain,
     });
 
     try {
-      const authResult = await authenticate.admin(request);
+      // Log exactly once with accurate outcome for the session exchange.
+      const authResult = await withEventLogging({
+        eventType: "session_exchange",
+        message: "Admin session exchange",
+        shopDomain,
+        run: async () => {
+          return await authenticate.admin(request);
+        },
+      });
 
       // Avoid `any` (lint): cast to a narrow expected shape
       const ar = authResult as unknown as AdminAuthResultShape;
@@ -30,7 +40,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const shop =
         ar.session?.shop ??
         ar.admin?.session?.shop ??
-        url.searchParams.get("shop") ??
+        shopDomain ??
         undefined;
 
       logger.info("embedded.auth.ok", {
@@ -38,20 +48,23 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         shop,
       });
 
-      // eslint-disable-next-line no-undef
+      // If the auth layer threw a Response we already handle it in catch.
+      // For normal success, return the API key for AppProvider.
       return { apiKey: process.env.SHOPIFY_API_KEY || "" };
-    } catch (err) {
-      // Shopify auth can throw a Response (e.g., 410 / redirects in embedded flows)
+    } catch (err: unknown) {
+      // Shopify auth can throw a Response (e.g., redirects / 410 / etc.)
       if (err instanceof Response) {
         logger.info("embedded.auth.thrown_response", {
           path: url.pathname,
           status: err.status,
+          shopDomain,
         });
-        throw err;
+        throw withRequestIdHeader(err, requestId);
       }
 
       logger.error("embedded.auth.fail", {
         path: url.pathname,
+        shopDomain,
         errorMessage: err instanceof Error ? err.message : String(err),
         stack: err instanceof Error ? err.stack : undefined,
       });
