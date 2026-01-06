@@ -5,6 +5,7 @@ import { createReadableStreamFromReadable } from "@react-router/node";
 import { type EntryContext } from "react-router";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
+import { validateRequiredConfig } from "./utils/config.server";
 
 import {
   enableRequestIdRuntimePatches,
@@ -15,6 +16,8 @@ import {
 import { logger } from "./utils/logger.server";
 
 export const streamTimeout = 5000;
+
+validateRequiredConfig();
 
 let runtimePatched = false;
 function ensureRuntimePatched() {
