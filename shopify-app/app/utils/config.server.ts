@@ -26,8 +26,15 @@ export function validateRequiredConfig(env: NodeJS.ProcessEnv = process.env): vo
   const missingKeys: RequiredKey[] = REQUIRED_ENV_VARS.filter((k) => isMissing(env[k]));
 
   if (missingKeys.length > 0) {
-    logger.error({ missingKeys }, "Missing required configuration keys");
-    // Non-zero exit will happen if unhandled at startup
-    throw new Error(`Missing required configuration keys: ${missingKeys.join(", ")}`);
-  }
+
+logger.error("Missing required configuration keys", {
+  missingKeys,
+  eventType: "startup_config",
+  requestId: "startup",
+  merchantId: null,
+  errorCode: "MISSING_CONFIG",
+  errorMessage: "Missing required server configuration",
+});
+
+      }
 }
