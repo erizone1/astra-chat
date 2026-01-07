@@ -9,7 +9,8 @@ export type EventType =
   | "oauth_callback"
   | "session_exchange"
   | "webhook_uninstall"
-  | "webhook_other";
+  | "webhook_other"
+  | "ssr_render";
 
 export type Outcome = "success" | "failure";
 
@@ -27,10 +28,19 @@ export type EventMetadata = {
 
   errorName?: string;
   errorMessage?: string;
+  errorCode?: ErrorCode;
 
   // allow extra keys, but we sanitize/redact
   [k: string]: unknown;
 };
+
+export type ErrorCode =
+  | "INVALID_SHOP"
+  | "INVALID_STATE"
+  | "HMAC_VERIFICATION_FAILED"
+  | "TOKEN_ENCRYPTION_FAILED"
+  | "MISSING_CONFIG"
+  | "INVEST";
 
 function toUpperLevel(level: Level): "DEBUG" | "INFO" | "WARN" | "ERROR" {
   switch (level) {
@@ -79,6 +89,54 @@ const LONG_OPAQUE_RE = /^[A-Za-z0-9+/=_-]{32,}$/;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
+  INVALID_SHOP: "Invalid shop domain",
+  INVALID_STATE: "Invalid OAuth state",
+  HMAC_VERIFICATION_FAILED: "HMAC verification failed",
+  TOKEN_ENCRYPTION_FAILED: "Token encryption failed",
+  MISSING_CONFIG: "Missing configuration",
+  INVEST: "Unexpected error",
+};
+
+function inferErrorCode(message: string): ErrorCode | undefined {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("invalid shop")) return "INVALID_SHOP";
+  if (normalized.includes("invalid state") || normalized.includes("state mismatch")) {
+    return "INVALID_STATE";
+  }
+  if (normalized.includes("hmac")) return "HMAC_VERIFICATION_FAILED";
+  if (
+    normalized.includes("encrypt") ||
+    normalized.includes("encryption") ||
+    normalized.includes("cipher")
+  ) {
+    return "TOKEN_ENCRYPTION_FAILED";
+  }
+  if (
+    normalized.includes("missing config") ||
+    normalized.includes("shopify_api_key") ||
+    normalized.includes("shopify_api_secret") ||
+    normalized.includes("shopify_app_url") ||
+    normalized.includes("scopes")
+  ) {
+    return "MISSING_CONFIG";
+  }
+  if (normalized.includes("invest")) return "INVEST";
+  return undefined;
+}
+
+export function buildErrorMetadata(
+  err: unknown,
+  overrides?: { errorCode?: ErrorCode; errorMessage?: string }
+): { errorName: string; errorMessage: string; errorCode: ErrorCode } {
+  const errorName = err instanceof Error ? err.name : "Error";
+  const rawMessage = err instanceof Error ? err.message : String(err);
+  const errorCode = overrides?.errorCode ?? inferErrorCode(rawMessage) ?? "INVEST";
+  const errorMessage =
+    overrides?.errorMessage ?? ERROR_CODE_MESSAGES[errorCode] ?? rawMessage;
+
+  return { errorName, errorMessage, errorCode };
+}
 
 /**
  * Heuristic: avoid false-positive JWT redaction for normal 3-part dotted strings like:
@@ -284,7 +342,9 @@ export async function withEventLogging<T>(args: {
         redirect: true,
       });
       throw err;
-    } 
+    }
+
+    const errorMeta = buildErrorMetadata(err);
 
     logEvent(args.message, {
       eventType: args.eventType,
@@ -292,11 +352,9 @@ export async function withEventLogging<T>(args: {
       merchantId: args.merchantId,
       outcome: "failure",
       durationMs: Date.now() - start,
-      errorName: err instanceof Error ? err.name : "Error",
-      errorMessage: err instanceof Error ? err.message : String(err),
+      ...errorMeta,
     });
 
     throw err;
   }
 }
-

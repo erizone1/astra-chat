@@ -39,24 +39,18 @@ if (host === "localhost") {
 export default defineConfig({
   server: {
     allowedHosts: [host],
-    cors: {
-      preflightContinue: true,
-    },
+    cors: { preflightContinue: true },
     port: Number(process.env.PORT || 3000),
     hmr: hmrConfig,
-    fs: {
-      allow: ["app", "node_modules"],
-    },
-  },
-  plugins: [reactRouter(), tsconfigPaths()],
-  build: {
-    assetsInlineLimit: 0,
-  },
-  optimizeDeps: {
-    include: ["@shopify/app-bridge-react"],
+    fs: { allow: ["app", "node_modules"] },
   },
 
-  // ✅ Vitest
+  // ✅ IMPORTANT: tsconfigPaths first so "~/*" resolves everywhere (including Vitest imports)
+  plugins: [tsconfigPaths(), reactRouter()],
+
+  build: { assetsInlineLimit: 0 },
+  optimizeDeps: { include: ["@shopify/app-bridge-react"] },
+
   test: {
     environment: "node",
     globals: true,
@@ -64,4 +58,3 @@ export default defineConfig({
     include: ["test/**/*.test.ts", "test/**/*.spec.ts"],
   },
 });
-

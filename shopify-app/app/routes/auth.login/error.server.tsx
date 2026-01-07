@@ -1,5 +1,6 @@
 import type { LoginError } from "@shopify/shopify-app-react-router/server";
 import { LoginErrorType } from "@shopify/shopify-app-react-router/server";
+import type { ErrorCode } from "../../utils/logger.server";
 
 interface LoginErrorMessage {
   shop?: string;
@@ -13,4 +14,14 @@ export function loginErrorMessage(loginErrors: LoginError): LoginErrorMessage {
   }
 
   return {};
+}
+
+export function loginErrorCode(loginErrors: LoginError): ErrorCode | undefined {
+  if (
+    loginErrors?.shop === LoginErrorType.MissingShop ||
+    loginErrors?.shop === LoginErrorType.InvalidShop
+  ) {
+    return "INVALID_SHOP";
+  }
+  return undefined;
 }
