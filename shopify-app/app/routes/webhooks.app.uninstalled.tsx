@@ -3,7 +3,7 @@ import type { ActionFunctionArgs } from "react-router";
 
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
-import { logEvent } from "../utils/logger.server";
+import { buildErrorMetadata, logEvent } from "../utils/logger.server";
 import { withRequestId, withRequestIdHeader } from "../utils/request-id.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -34,6 +34,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
       return withRequestIdHeader(new Response(null, { status: 200 }), requestId);
     } catch (err: unknown) {
+      const errorMeta = buildErrorMetadata(err);
       logEvent("Webhook uninstall failed", {
         eventType: "webhook_uninstall",
         outcome: "failure",
@@ -41,8 +42,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         durationMs: Date.now() - started,
         topic: topicStr,
         webhookId,
-        errorName: err instanceof Error ? err.name : "Error",
-        errorMessage: err instanceof Error ? err.message : String(err),
+        ...errorMeta,
       });
 
       // keep 500 so Shopify retries on real failures

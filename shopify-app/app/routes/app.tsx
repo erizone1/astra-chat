@@ -4,7 +4,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 
 import { authenticate } from "../shopify.server";
-import { logger, withEventLogging } from "../utils/logger.server";
+import { buildErrorMetadata, logger, withEventLogging } from "../utils/logger.server";
 import { withRequestId, withRequestIdHeader } from "../utils/request-id.server";
 
 type AdminAuthResultShape = {
@@ -63,10 +63,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
 
       logger.error("embedded.auth.fail", {
+        eventType: "session_exchange",
         path: url.pathname,
         shopDomain,
-        errorMessage: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined,
+        ...(process.env.NODE_ENV === "production"
+          ? buildErrorMetadata(err)
+          : {
+              ...buildErrorMetadata(err),
+              stack: err instanceof Error ? err.stack : undefined,
+            }),
       });
 
       throw err;

@@ -13,7 +13,7 @@ import {
   runWithRequestId,
   setRequestIdHeader,
 } from "./utils/request-id.server";
-import { logger } from "./utils/logger.server";
+import { buildErrorMetadata, logger } from "./utils/logger.server";
 
 export const streamTimeout = 5000;
 
@@ -68,9 +68,14 @@ export default async function handleRequest(
                 pipe(body);
               } catch (err) {
                 logger.error("SSR callback failed", {
+                  eventType: "ssr_render",
                   url: request.url,
-                  errorMessage: err instanceof Error ? err.message : String(err),
-                  stack: err instanceof Error ? err.stack : undefined,
+                  ...(process.env.NODE_ENV === "production"
+                    ? buildErrorMetadata(err)
+                    : {
+                        ...buildErrorMetadata(err),
+                        stack: err instanceof Error ? err.stack : undefined,
+                      }),
                 });
 
                 responseHeaders.set("Content-Type", "text/plain");
@@ -88,9 +93,14 @@ export default async function handleRequest(
             onShellError(error) {
               // Don’t reject; always resolve a response with X-Request-Id
               logger.error("SSR shell error", {
+                eventType: "ssr_render",
                 url: request.url,
-                errorMessage: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
+                ...(process.env.NODE_ENV === "production"
+                  ? buildErrorMetadata(error)
+                  : {
+                      ...buildErrorMetadata(error),
+                      stack: error instanceof Error ? error.stack : undefined,
+                    }),
               });
 
               responseHeaders.set("Content-Type", "text/plain");
@@ -108,9 +118,14 @@ export default async function handleRequest(
               // React keeps going; mark status 500 and log
               responseStatusCode = 500;
               logger.error("SSR render error", {
+                eventType: "ssr_render",
                 url: request.url,
-                errorMessage: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
+                ...(process.env.NODE_ENV === "production"
+                  ? buildErrorMetadata(error)
+                  : {
+                      ...buildErrorMetadata(error),
+                      stack: error instanceof Error ? error.stack : undefined,
+                    }),
               });
             },
           }
@@ -121,9 +136,14 @@ export default async function handleRequest(
     } catch (err) {
       // Synchronous failures initiating SSR
       logger.error("Failed to initiate SSR", {
+        eventType: "ssr_render",
         url: request.url,
-        errorMessage: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined,
+        ...(process.env.NODE_ENV === "production"
+          ? buildErrorMetadata(err)
+          : {
+              ...buildErrorMetadata(err),
+              stack: err instanceof Error ? err.stack : undefined,
+            }),
       });
 
       responseHeaders.set("Content-Type", "text/plain");

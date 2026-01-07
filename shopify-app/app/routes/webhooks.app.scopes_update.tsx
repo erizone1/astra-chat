@@ -3,7 +3,7 @@ import type { ActionFunctionArgs } from "react-router";
 
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
-import { logEvent } from "../utils/logger.server";
+import { buildErrorMetadata, logEvent } from "../utils/logger.server";
 import { withRequestId, withRequestIdHeader } from "../utils/request-id.server";
 
 // Narrow type for the webhook payload we care about (no `any`)
@@ -57,18 +57,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         throw withRequestIdHeader(err, requestId);
       }
 
+      const errorMeta = buildErrorMetadata(err);
       logEvent("Webhook scopes update failed", {
         eventType: "webhook_other",
         outcome: "failure",
         durationMs: Date.now() - started,
         status: 500,
         webhookId,
-        errorName: err instanceof Error ? err.name : "Error",
-        errorMessage: err instanceof Error ? err.message : String(err),
+        ...errorMeta,
       });
 
       return withRequestIdHeader(new Response(null, { status: 500 }), requestId);
     }
   });
 };
-

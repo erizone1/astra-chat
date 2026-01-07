@@ -10,12 +10,21 @@ export const REQUIRED_ENV_VARS = [
 
 type RequiredKey = (typeof REQUIRED_ENV_VARS)[number];
 
+// Expand placeholders slightly: tests explicitly mention "CHANGEME" and "obvious placeholders"
+const PLACEHOLDER_VALUES = new Set(["changeme", "replace_me", "todo", "tbd"]);
+
 function isMissing(v: string | undefined): boolean {
-  if (!v) return true;
+  if (v === undefined) return true;
+
   const t = v.trim();
   if (!t) return true;
+
   const lower = t.toLowerCase();
-  return lower === "changeme" || lower === "replace_me" || lower === "todo";
+
+  // treat obvious placeholders as missing
+  if (PLACEHOLDER_VALUES.has(lower)) return true;
+
+  return false;
 }
 
 /**
@@ -26,15 +35,18 @@ export function validateRequiredConfig(env: NodeJS.ProcessEnv = process.env): vo
   const missingKeys: RequiredKey[] = REQUIRED_ENV_VARS.filter((k) => isMissing(env[k]));
 
   if (missingKeys.length > 0) {
+    // IMPORTANT: keys-only (do not log env values)
+    logger.error("Missing required configuration keys", {
+      missingKeys,
+      eventType: "startup_config",
+      requestId: "startup",
+      merchantId: null,
+      errorCode: "MISSING_CONFIG",
+      errorMessage: "Missing required server configuration",
+    });
 
-logger.error("Missing required configuration keys", {
-  missingKeys,
-  eventType: "startup_config",
-  requestId: "startup",
-  merchantId: null,
-  errorCode: "MISSING_CONFIG",
-  errorMessage: "Missing required server configuration",
-});
-
-      }
+    // ✅ This is what your tests are expecting
+    throw new Error(`Missing required configuration keys: ${missingKeys.join(", ")}`);
+  }
 }
+
