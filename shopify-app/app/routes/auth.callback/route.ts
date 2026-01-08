@@ -1,4 +1,4 @@
-// app/routes/auth.login.callback/route.ts
+// app/routes/auth.callback/route.ts
 import type { LoaderFunctionArgs } from "react-router";
 
 import shopify from "../../shopify.server";
@@ -13,14 +13,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     try {
       await withEventLogging({
         eventType: "oauth_callback",
-        message: "OAuth callback received",
+        message: "OAuth managed install callback received",
         shopDomain,
         run: async () => {
           await shopify.authenticate.admin(request);
         },
       });
 
-      // If authenticate.admin() doesn't redirect (rare, but possible), respond cleanly.
+      // If authenticate.admin() doesn't redirect (rare), respond cleanly.
       return withRequestIdHeader(new Response(null, { status: 204 }), requestId);
     } catch (err: unknown) {
       // OAuth flow often throws redirect Response; preserve request id header for correlation.
