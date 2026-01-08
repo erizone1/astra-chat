@@ -26,10 +26,26 @@ function looksLikeOAuthCallback(url: URL): boolean {
   );
 }
 
+function getRedirectUriParam(url: URL): string | undefined {
+  return url.searchParams.get("redirect_uri") ?? url.searchParams.get("redirectUri") ?? undefined;
+}
+
+function isAllowedRedirectUri(redirectUri: string): boolean {
+  const appUrl = process.env.SHOPIFY_APP_URL;
+  if (!appUrl) return false;
+
+  const candidate = new URL(redirectUri);
+  const base = new URL(appUrl);
+  const allowedPaths = new Set(["/auth/callback", "/auth/login/callback"]);
+
+  return candidate.origin === base.origin && allowedPaths.has(candidate.pathname);
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   return withRequestId(request, async (requestId) => {
     const started = Date.now();
     const url = new URL(request.url);
+    const redirectUri = getRedirectUriParam(url);
 
     const rawShop = url.searchParams.get("shop");
     const shopDomain = normalizeShopDomain(rawShop);
@@ -46,6 +62,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return withRequestIdHeader(
         new Response("Missing configuration: SHOPIFY_API_KEY", {
           status: 500,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        }),
+        requestId
+      );
+    }
+
+    if (redirectUri && !isAllowedRedirectUri(redirectUri)) {
+      return withRequestIdHeader(
+        new Response("Invalid redirect_uri parameter.", {
+          status: 400,
           headers: { "Content-Type": "text/plain; charset=utf-8" },
         }),
         requestId
@@ -103,6 +129,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
   return withRequestId(request, async (requestId) => {
     const started = Date.now();
+    const url = new URL(request.url);
+    const redirectUri = getRedirectUriParam(url);
 
     let shopDomain: string | undefined;
     try {
@@ -111,6 +139,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (typeof shop === "string") shopDomain = normalizeShopDomain(shop);
     } catch {
       // ignore
+    }
+
+    if (redirectUri && !isAllowedRedirectUri(redirectUri)) {
+      return withRequestIdHeader(
+        new Response("Invalid redirect_uri parameter.", {
+          status: 400,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        }),
+        requestId
+      );
     }
 
     try {
@@ -183,4 +221,3 @@ export default function Auth() {
     </AppProvider>
   );
 }
-

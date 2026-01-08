@@ -36,6 +36,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const loginUrl = new URL(request.url);
     loginUrl.pathname = "/auth/login";
     loginUrl.searchParams.set("shop", result.shop);
+    const appUrl = process.env.SHOPIFY_APP_URL;
+    if (!appUrl) {
+      return withRequestIdHeader(
+        new Response("Missing configuration: SHOPIFY_APP_URL", {
+          status: 500,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        }),
+        requestId
+      );
+    }
+
+    const redirectUri = new URL("/auth/callback", appUrl).toString();
+    loginUrl.searchParams.set("redirect_uri", redirectUri);
 
     const loginRequest = new Request(loginUrl.toString(), {
       method: "GET",

@@ -29,3 +29,11 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+model Merchant {
+  merchantId  String   @id
+  shopDomain  String   @unique
+  installedAt DateTime
+  scopes      String
+  status      String
+}
