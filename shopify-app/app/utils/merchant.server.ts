@@ -1,6 +1,7 @@
 import type { Session } from "@shopify/shopify-api";
 
 import prisma from "../db.server";
+import { logger } from "./logger.server";
 
 type AdminGraphqlClient = {
   graphql: (query: string) => Promise<Response>;
@@ -28,7 +29,8 @@ async function resolveMerchantIdentity(
   session: Session,
   admin?: AdminGraphqlClient
 ): Promise<MerchantIdentity> {
-  let merchantId = normalizeShopId(session.shopId);
+  const sessionWithShopId = session as Session & { shopId?: string | number | null };
+  let merchantId = normalizeShopId(sessionWithShopId.shopId);
   let shopDomain = session.shop;
 
   if ((!merchantId || !shopDomain) && admin) {
@@ -89,20 +91,39 @@ export async function upsertActiveMerchant(
     admin
   );
 
-  return prisma.merchant.upsert({
-    where: { merchantId },
-    create: {
+  try {
+    const merchant = await prisma.merchant.upsert({
+      where: { merchantId },
+      create: {
+        merchantId,
+        shopDomain,
+        installedAt: new Date(),
+        scopes,
+        status: "active",
+      },
+      update: {
+        shopDomain,
+        installedAt: new Date(),
+        scopes,
+        status: "active",
+      },
+    });
+
+    logger.info("merchant.upserted", {
       merchantId,
       shopDomain,
-      installedAt: new Date(),
       scopes,
-      status: "active",
-    },
-    update: {
+      status: merchant.status,
+    });
+
+    return merchant;
+  } catch (err: unknown) {
+    logger.error("merchant.upsert_failed", {
+      merchantId,
       shopDomain,
-      installedAt: new Date(),
-      scopes,
-      status: "active",
-    },
-  });
+      errorName: err instanceof Error ? err.name : "Error",
+      errorMessage: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
+  }
 }
