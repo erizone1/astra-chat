@@ -59,35 +59,52 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       topicStr = String(topic);
 
       // ✅ Correct cleanup approach for this template style:
-      // Delete sessions and mark merchant as uninstalled in one transaction.
-      const { merchantUpdate } = await db.$transaction(async (tx) => {
-        const merchantUpdate = await tx.merchant.updateMany({
-          where: { shopDomain: shop },
-          data: { status: "uninstalled", statusUpdatedAt: new Date() },
-        });
-        const sessionDelete = await tx.session.deleteMany({ where: { shop } });
+      // Delete sessions (tokens) and mark merchant as uninstalled in one transaction.
+      const now = new Date();
+      const { merchantUpdate, merchant, sessionDelete } = await db.$transaction(
+        async (tx) => {
+          const merchant = await tx.merchant.findUnique({
+            where: { shopDomain: shop },
+          });
+          const merchantUpdate = await tx.merchant.updateMany({
+            where: { shopDomain: shop, status: { not: "uninstalled" } },
+            data: {
+              status: "uninstalled",
+              statusUpdatedAt: now,
+            },
+          });
+          const sessionDelete = await tx.session.deleteMany({ where: { shop } });
 
-        return { merchantUpdate, sessionDelete };
-      });
+          return { merchantUpdate, sessionDelete, merchant };
+        }
+      );
+
+      const merchantMissing = !merchant;
 
       if (merchantUpdate.count > 0) {
         logEvent("Merchant marked uninstalled", {
-          eventType: "webhook_uninstall",
+          eventType: "merchant_uninstalled",
           outcome: "success",
           shopDomain,
+          merchantId: merchant?.merchantId,
           durationMs: Date.now() - started,
           topic: topicStr,
           webhookId,
+          timestamp: now.toISOString(),
+          sessionsDeleted: sessionDelete.count,
+          statusUpdatedAt: now.toISOString(),
         });
       }
 
       logEvent("Webhook uninstall processed", {
         eventType: "webhook_uninstall",
-        outcome: "success",
+        outcome: merchantMissing ? "failure" : "success",
         shopDomain,
+        merchantId: merchant?.merchantId,
         durationMs: Date.now() - started,
         topic: topicStr,
         webhookId,
+        merchantMissing,
       });
 
       return withRequestIdHeader(new Response(null, { status: 200 }), requestId);

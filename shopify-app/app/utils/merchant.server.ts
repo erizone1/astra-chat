@@ -141,3 +141,20 @@ export async function upsertActiveMerchant(
     throw err;
   }
 }
+
+export async function requireActiveMerchantByShopDomain(shopDomain: string) {
+  const merchant = await prisma.merchant.findUnique({
+    where: { shopDomain },
+  });
+
+  if (!merchant || merchant.status !== "active") {
+    logger.warn("merchant.not_active", {
+      shopDomain,
+      merchantId: merchant?.merchantId,
+      status: merchant?.status ?? "missing",
+    });
+    throw new Response("Merchant not active", { status: 410 });
+  }
+
+  return merchant;
+}
