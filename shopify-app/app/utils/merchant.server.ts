@@ -92,6 +92,9 @@ export async function upsertActiveMerchant(
   );
 
   try {
+    const existingMerchant = await prisma.merchant.findUnique({
+      where: { merchantId },
+    });
     const merchant = await prisma.merchant.upsert({
       where: { merchantId },
       create: {
@@ -100,14 +103,25 @@ export async function upsertActiveMerchant(
         installedAt: new Date(),
         scopes,
         status: "active",
+        statusUpdatedAt: new Date(),
       },
       update: {
         shopDomain,
         installedAt: new Date(),
         scopes,
         status: "active",
+        statusUpdatedAt: new Date(),
       },
     });
+
+    if (!existingMerchant) {
+      logger.info("merchant.created", {
+        merchantId,
+        shopDomain,
+        scopes,
+        status: merchant.status,
+      });
+    }
 
     logger.info("merchant.upserted", {
       merchantId,
