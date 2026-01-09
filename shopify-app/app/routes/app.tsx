@@ -4,6 +4,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 
 import { authenticate } from "../shopify.server";
+import { requireActiveMerchantByShopDomain } from "../utils/merchant.server";
 import { buildErrorMetadata, logger, withEventLogging } from "../utils/logger.server";
 import { withRequestId, withRequestIdHeader } from "../utils/request-id.server";
 
@@ -42,6 +43,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         ar.admin?.session?.shop ??
         shopDomain ??
         undefined;
+
+      if (shop) {
+        await requireActiveMerchantByShopDomain(shop);
+      }
 
       logger.info("embedded.auth.ok", {
         path: url.pathname,

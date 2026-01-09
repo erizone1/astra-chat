@@ -8,6 +8,7 @@ export type EventType =
   | "oauth_start"
   | "oauth_callback"
   | "session_exchange"
+  | "merchant_uninstalled"
   | "webhook_uninstall"
   | "webhook_other"
   | "ssr_render";
