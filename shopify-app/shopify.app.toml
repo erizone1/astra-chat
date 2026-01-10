@@ -2,7 +2,7 @@
 
 client_id = "e785c69fe44ca78704f9c4c3b1f201f2"
 name = "astra-chat"
-application_url = "https://example.com"
+application_url = "${SHOPIFY_APP_URL}"
 embedded = true
 
 [build]
@@ -25,4 +25,7 @@ api_version = "2026-04"
 scopes = "write_products"
 
 [auth]
-redirect_urls = [ "https://example.com/auth/callback", "https://example.com/auth/login/callback" ]
+redirect_urls = [
+  "${SHOPIFY_APP_URL}/auth/callback",
+  "${SHOPIFY_APP_URL}/auth/login/callback"
+]
