@@ -46,7 +46,7 @@ const LIST_WEBHOOKS_QUERY = `
 `;
 
 type WebhookEndpoint =
-  | { __typename: "WebhookHttpEndpoint"; callbackUrl?: string | null }
+  | { __typename: "WebhookHttpEndpoint"; callbackUrl: string | null }
   | { __typename: string; [k: string]: unknown }
   | null
   | undefined;
@@ -101,7 +101,7 @@ async function adminGraphql<T>(
 function extractCallbackUrl(endpoint?: WebhookEndpoint): string | null {
   if (!endpoint) return null;
   if (endpoint.__typename === "WebhookHttpEndpoint") {
-    return endpoint.callbackUrl ?? null;
+    return endpoint.callbackUrl;
   }
   return null;
 }
@@ -125,18 +125,19 @@ async function main(): Promise<void> {
   let cursor: string | null = null;
 
   while (hasNextPage) {
-    const payload = await adminGraphql<WebhookSubscriptionsQueryResponse>(
-      SHOP,
-      API_VERSION,
-      session.accessToken,
-      LIST_WEBHOOKS_QUERY,
-      { first: 100, after: cursor }
-    );
+    const payload: WebhookSubscriptionsQueryResponse =
+      await adminGraphql<WebhookSubscriptionsQueryResponse>(
+        SHOP,
+        API_VERSION,
+        session.accessToken,
+        LIST_WEBHOOKS_QUERY,
+        { first: 100, after: cursor }
+      );
 
     if (payload.errors?.length) {
       throw new Error(
         `Shopify GraphQL errors: ${payload.errors
-          .map((e) => e.message)
+          .map((e: { message?: string }) => e.message)
           .filter(Boolean)
           .join(", ")}`
       );
