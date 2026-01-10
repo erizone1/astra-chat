@@ -101,7 +101,8 @@ async function adminGraphql<T>(
 function extractCallbackUrl(endpoint?: WebhookEndpoint): string | null {
   if (!endpoint) return null;
   if (endpoint.__typename === "WebhookHttpEndpoint") {
-    return endpoint.callbackUrl;
+    if (endpoint.callbackUrl === null) return null;
+    if (typeof endpoint.callbackUrl === "string") return endpoint.callbackUrl;
   }
   return null;
 }
