@@ -7,7 +7,7 @@ type AdminGraphqlClient = {
   graphql: (query: string) => Promise<Response>;
 };
 
-type MerchantIdentity = {
+export type MerchantIdentity = {
   merchantId: string;
   shopDomain: string;
   scopes: string;
@@ -25,7 +25,7 @@ function normalizeShopId(value?: string | number | null): string | undefined {
   return match ? match[1] : undefined;
 }
 
-async function resolveMerchantIdentity(
+export async function resolveMerchantIdentity(
   session: Session,
   admin?: AdminGraphqlClient
 ): Promise<MerchantIdentity> {
@@ -84,12 +84,12 @@ async function resolveMerchantIdentity(
 
 export async function upsertActiveMerchant(
   session: Session,
-  admin?: AdminGraphqlClient
+  admin?: AdminGraphqlClient,
+  options?: { status?: string; identity?: MerchantIdentity }
 ) {
-  const { merchantId, shopDomain, scopes } = await resolveMerchantIdentity(
-    session,
-    admin
-  );
+  const { merchantId, shopDomain, scopes } =
+    options?.identity ?? (await resolveMerchantIdentity(session, admin));
+  const status = options?.status ?? "active";
 
   try {
     const existingMerchant = await prisma.merchant.findUnique({
@@ -102,14 +102,14 @@ export async function upsertActiveMerchant(
         shopDomain,
         installedAt: new Date(),
         scopes,
-        status: "active",
+        status,
         statusUpdatedAt: new Date(),
       },
       update: {
         shopDomain,
         installedAt: new Date(),
         scopes,
-        status: "active",
+        status,
         statusUpdatedAt: new Date(),
       },
     });
@@ -147,7 +147,7 @@ export async function requireActiveMerchantByShopDomain(shopDomain: string) {
     where: { shopDomain },
   });
 
-  if (!merchant || merchant.status !== "active") {
+  if (!merchant || !["active", "missing_webhooks"].includes(merchant.status)) {
     logger.warn("merchant.not_active", {
       shopDomain,
       merchantId: merchant?.merchantId,

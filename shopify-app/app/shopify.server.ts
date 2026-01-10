@@ -7,7 +7,11 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 
 import prisma from "./db.server";
-import { upsertActiveMerchant } from "./utils/merchant.server";
+import {
+  resolveMerchantIdentity,
+  upsertActiveMerchant,
+} from "./utils/merchant.server";
+import { ensureUninstallWebhookRegistration } from "./utils/shopify-webhook-registration.server";
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -20,7 +24,16 @@ const shopify = shopifyApp({
   distribution: AppDistribution.AppStore,
   hooks: {
     afterAuth: async ({ session, admin }) => {
-      await upsertActiveMerchant(session, admin);
+      const identity = await resolveMerchantIdentity(session, admin);
+      const registration = await ensureUninstallWebhookRegistration({
+        admin,
+        merchantId: identity.merchantId,
+        shopDomain: identity.shopDomain,
+      });
+      await upsertActiveMerchant(session, admin, {
+        identity,
+        status: registration.success ? "active" : "missing_webhooks",
+      });
     },
   },
   future: {

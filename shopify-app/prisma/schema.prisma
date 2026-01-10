@@ -37,4 +37,19 @@ model Merchant {
   scopes      String
   status      String
   statusUpdatedAt DateTime?
+
+  webhooks MerchantWebhook[]
+}
+
+model MerchantWebhook {
+  id        String   @id @default(cuid())
+  merchantId String
+  topic     String
+  address   String
+  webhookId String
+  createdAt DateTime
+
+  merchant Merchant @relation(fields: [merchantId], references: [merchantId])
+
+  @@unique([merchantId, topic, address])
 }
