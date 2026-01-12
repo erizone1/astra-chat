@@ -1,0 +1,97 @@
+{{ 'chat-widget.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'chat-widget.js' | asset_url }}" defer></script>
+
+<div
+  class="astra-chat-widget"
+  data-astra-chat-widget
+  style="--astra-chat-brand: {{ block.settings.brand_color }};"
+>
+  <div class="astra-chat-panel" role="dialog" aria-label="Chat widget">
+    <div class="astra-chat-panel-header">
+      <div class="astra-chat-header-title">
+        <span class="astra-chat-brand-name">{{ block.settings.brand_name }}</span>
+        <span class="astra-chat-status">
+          {% if block.settings.show_online %}
+            <span class="astra-chat-status-dot" aria-hidden="true"></span>
+          {% endif %}
+          We are online
+        </span>
+      </div>
+      <button type="button" class="astra-chat-close" aria-label="Close chat">
+        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path
+            fill-rule="evenodd"
+            d="M4.22 4.22a.75.75 0 011.06 0L10 8.94l4.72-4.72a.75.75 0 111.06 1.06L11.06 10l4.72 4.72a.75.75 0 11-1.06 1.06L10 11.06l-4.72 4.72a.75.75 0 11-1.06-1.06L8.94 10 4.22 5.28a.75.75 0 010-1.06z"
+            clip-rule="evenodd"
+          ></path>
+        </svg>
+      </button>
+    </div>
+    <div class="astra-chat-panel-body">
+      <div class="astra-chat-message-area">
+        Hi there! 👋 How can we help you today?
+      </div>
+      <div class="astra-chat-quick-actions">
+        <button type="button" class="astra-chat-quick-action">Order status</button>
+        <button type="button" class="astra-chat-quick-action">Shipping info</button>
+        <button type="button" class="astra-chat-quick-action">Talk to support</button>
+      </div>
+      <div class="astra-chat-input-bar">
+        <input
+          class="astra-chat-input"
+          placeholder="Type your message..."
+          aria-label="Message input"
+        >
+        <button type="button" class="astra-chat-send" aria-label="Send">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M2.94 2.94a1.5 1.5 0 012.12 0L17 14.88a1 1 0 01-1.03 1.71l-5.12-1.46-1.46 5.12A1 1 0 018.68 20H8.5a1 1 0 01-.96-1.28l1.76-6.16-6.16 1.76A1 1 0 011.28 12V11.8a1.5 1.5 0 010-2.12L2.94 2.94z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  <button type="button" class="astra-chat-launcher" aria-label="Open chat">
+    <svg
+      class="astra-chat-launcher-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4z"></path>
+    </svg>
+    {% if block.settings.show_online %}
+      <span class="astra-chat-launcher-dot" aria-hidden="true"></span>
+    {% endif %}
+  </button>
+</div>
+
+{% schema %}
+{
+  "name": "t:blocks.chat_widget.name",
+  "target": "body",
+  "settings": [
+    {
+      "type": "text",
+      "id": "brand_name",
+      "label": "Brand name",
+      "default": "Modavinio"
+    },
+    {
+      "type": "color",
+      "id": "brand_color",
+      "label": "Brand color",
+      "default": "#4f46e5"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_online",
+      "label": "Show online indicator",
+      "default": true
+    }
+  ]
+}
+{% endschema %}
