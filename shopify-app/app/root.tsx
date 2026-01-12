@@ -1,5 +1,7 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
+import ChatWidget from "./components/ChatWidget";
+
 export default function App() {
   return (
     <html lang="en">
@@ -16,6 +18,7 @@ export default function App() {
       </head>
       <body>
         <Outlet />
+        <ChatWidget />
         <ScrollRestoration />
         <Scripts />
       </body>

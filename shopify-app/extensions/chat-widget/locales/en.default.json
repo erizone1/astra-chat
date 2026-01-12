@@ -1,0 +1,18 @@
+{
+  "blocks": {
+    "chat_widget": {
+      "name": "Astra chat widget",
+      "settings": {
+        "brand_name": {
+          "label": "Brand name"
+        },
+        "brand_color": {
+          "label": "Brand color"
+        },
+        "show_online": {
+          "label": "Show online indicator"
+        }
+      }
+    }
+  }
+}

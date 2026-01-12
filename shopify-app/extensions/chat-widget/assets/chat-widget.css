@@ -1,0 +1,209 @@
+.astra-chat-widget {
+  position: fixed;
+  right: 24px;
+  bottom: var(--astra-chat-bottom, 24px);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: "Inter", system-ui, sans-serif;
+  color: #0f172a;
+}
+
+.astra-chat-launcher {
+  position: relative;
+  height: 56px;
+  width: 56px;
+  border-radius: 999px;
+  border: none;
+  background: var(--astra-chat-brand, #4f46e5);
+  color: #ffffff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.astra-chat-launcher:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 4px;
+}
+
+.astra-chat-launcher-icon {
+  height: 24px;
+  width: 24px;
+}
+
+.astra-chat-launcher-dot {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  height: 12px;
+  width: 12px;
+  border-radius: 999px;
+  background: #22c55e;
+  border: 2px solid #ffffff;
+}
+
+.astra-chat-panel {
+  width: min(360px, calc(100vw - 32px));
+  height: 480px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.24);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(16px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 240ms ease, opacity 240ms ease;
+}
+
+.astra-chat-panel.is-open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.astra-chat-panel-header {
+  background: var(--astra-chat-brand, #4f46e5);
+  color: #ffffff;
+  padding: 16px 16px 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.astra-chat-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.astra-chat-brand-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.astra-chat-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.astra-chat-status-dot {
+  height: 8px;
+  width: 8px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+.astra-chat-close {
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 0;
+}
+
+.astra-chat-close:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.astra-chat-panel-body {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f8fafc;
+}
+
+.astra-chat-message-area {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 12px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.astra-chat-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.astra-chat-quick-action {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.astra-chat-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 8px 12px;
+}
+
+.astra-chat-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: #0f172a;
+  background: transparent;
+}
+
+.astra-chat-send {
+  border: none;
+  background: var(--astra-chat-brand, #4f46e5);
+  color: #ffffff;
+  height: 28px;
+  width: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.astra-chat-send svg {
+  height: 14px;
+  width: 14px;
+}
+
+.astra-chat-launcher.is-hidden {
+  opacity: 0;
+  transform: scale(0.9);
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .astra-chat-widget {
+    right: 16px;
+    bottom: var(--astra-chat-bottom, 16px);
+  }
+
+  .astra-chat-panel {
+    width: calc(100vw - 32px);
+    height: 420px;
+  }
+}
